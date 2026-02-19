@@ -1,0 +1,37 @@
+# MSSQL Server Configuration
+mssql:
+  host: "localhost"
+  port: 1433
+  database: "" # Add database name
+  username: "" # Add username
+  password: ""  # Add password
+  driver: "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+  
+  # Connection properties
+  connection:
+    encrypt: false
+    trustServerCertificate: true
+    loginTimeout: 30
+    
+  # JDBC URL template
+  jdbc_url: "jdbc:sqlserver://{host}:{port};databaseName={database};encrypt={encrypt};trustServerCertificate={trustServerCertificate}"
+
+# Tables to load
+tables:
+  - name: "customers"
+    schema: "dbo"
+    primary_key: "customer_id"
+    
+  - name: "orders"
+    schema: "dbo"
+    primary_key: "order_id"
+    
+  - name: "products"
+    schema: "dbo"
+    primary_key: "product_id"
+
+# Spark write options
+write_options:
+  mode: "overwrite"  # append, overwrite, ignore, error
+  batchsize: 10000
+  isolationLevel: "READ_COMMITTED"

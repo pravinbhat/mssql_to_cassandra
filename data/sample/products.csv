@@ -1,0 +1,16 @@
+product_id,product_name,category,description,price,stock_quantity,supplier,sku,created_date
+101,Laptop Pro 15,Electronics,High-performance laptop with 15-inch display,1299.99,50,TechCorp,LAP-PRO-15,2024-01-01
+102,Wireless Mouse,Electronics,Ergonomic wireless mouse with USB receiver,29.99,200,TechCorp,MOU-WIR-01,2024-01-01
+103,USB-C Cable,Electronics,6ft USB-C charging cable,15.99,500,CableMax,CAB-USC-6F,2024-01-02
+104,Office Chair,Furniture,Ergonomic office chair with lumbar support,249.99,75,ComfortSeating,CHR-OFF-01,2024-01-03
+105,Standing Desk,Furniture,Adjustable height standing desk,499.99,30,DeskPro,DSK-STD-01,2024-01-04
+106,Notebook Set,Stationery,Pack of 5 ruled notebooks,12.99,300,PaperPlus,NOT-SET-05,2024-01-05
+107,Mechanical Keyboard,Electronics,RGB mechanical gaming keyboard,149.99,100,TechCorp,KEY-MEC-RGB,2024-01-06
+108,Monitor 27inch,Electronics,4K UHD 27-inch monitor,399.99,60,DisplayTech,MON-27-4K,2024-01-07
+109,Desk Lamp,Furniture,LED desk lamp with adjustable brightness,45.99,150,LightWorks,LMP-DSK-LED,2024-01-08
+110,Webcam HD,Electronics,1080p HD webcam with microphone,79.99,120,TechCorp,WEB-HD-1080,2024-01-09
+111,Backpack,Accessories,Laptop backpack with multiple compartments,59.99,180,BagMaster,BAG-LAP-01,2024-01-10
+112,Water Bottle,Accessories,Insulated stainless steel water bottle,24.99,250,HydroGear,BOT-INS-750,2024-01-11
+113,Headphones,Electronics,Noise-cancelling wireless headphones,199.99,90,AudioMax,HDP-NC-WIR,2024-01-12
+114,Phone Stand,Accessories,Adjustable phone and tablet stand,19.99,400,StandPro,STD-PHN-ADJ,2024-01-13
+115,Printer,Electronics,All-in-one wireless printer,179.99,45,PrintTech,PRT-AIO-WIR,2024-01-14

@@ -1,0 +1,47 @@
+# Spark Configuration
+spark:
+  app_name: "MSSQL to Cassandra/DSE/HCD/AstraDB Migration"
+  master: "local[*]"  # Use local[*] for local mode, or spark://host:port for cluster
+  
+  # Spark configuration properties
+  config:
+    spark.driver.memory: "4g"
+    spark.executor.memory: "4g"
+    spark.executor.cores: 2
+    spark.sql.shuffle.partitions: 200
+    spark.default.parallelism: 8
+    
+    # Serialization
+    spark.serializer: "org.apache.spark.serializer.KryoSerializer"
+    spark.kryoserializer.buffer.max: "512m"
+    
+    # SQL optimizations
+    spark.sql.adaptive.enabled: true
+    spark.sql.adaptive.coalescePartitions.enabled: true
+    
+    # Logging
+    spark.eventLog.enabled: false
+    spark.ui.showConsoleProgress: true
+    
+    # Maven repository configuration
+    spark.jars.repositories: "https://repo1.maven.org/maven2/,https://repo.maven.apache.org/maven2/"
+    spark.jars.ivy: "/tmp/.ivy2"
+    
+  # JDBC driver paths - using local JARs instead of Maven packages
+  jars:
+    - "jars/mssql-jdbc-12.8.1.jre11.jar"
+    - "jars/spark-cassandra-connector-assembly_2.13-3.5.1.jar"
+    
+  # Packages to download automatically - DISABLED due to Maven resolution issues
+  # Using local JARs instead (see jars section above)
+  # To download JARs, run: ./scripts/download_jars.sh
+  # packages:
+  #   - "com.microsoft.sqlserver:mssql-jdbc:12.8.1.jre11"
+  #   - "com.datastax.spark:spark-cassandra-connector_2.13:3.5.1"
+
+# Logging configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARN, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/migration.log"
+  console: true
