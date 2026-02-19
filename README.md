@@ -82,12 +82,7 @@ If you see `PySparkRuntimeError: [JAVA_GATEWAY_EXITED]`, this means PySpark cann
 
 **Solution**:
 1. Verify Java 17+ is installed: `java -version`
-2. Use the helper script: `./run.fish uv run python scripts/...`
-3. Or manually set JAVA_HOME before running commands:
-   ```fish
-   set -gx JAVA_HOME ~/.sdkman/candidates/java/17.0.16-tem
-   set -gx PATH $JAVA_HOME/bin $PATH
-   ```
+2. Use the helper script: `./run.sh uv run python scripts/...`
 
 
 ## Testing
