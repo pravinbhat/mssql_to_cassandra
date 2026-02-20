@@ -4,6 +4,8 @@ This project provides Spark-based scripts to migrate data from MSSQL Server to A
 - **Migration script**: Automated data migration from MSSQL to Cassandra with schema mapping
 - **Data loader**: Scripts to load sample data into MSSQL Server for testing
 
+> 📖 **For detailed technical information**, see the [Architecture Documentation](docs/ARCHITECTURE.md)
+
 ## Prerequisites
 
 - **Java 17+** (required for PySpark 4.x)
@@ -50,6 +52,18 @@ This project provides Spark-based scripts to migrate data from MSSQL Server to A
 Load test data from CSV files into MSSQL Server:
 ```bash
 ./run.sh uv run python scripts/load_mssql/load_data.py
+```
+
+CSV files should have:
+- Header row with column names
+- Comma-separated values
+- Proper data types (will be inferred by Spark)
+
+Example:
+```csv
+customer_id,first_name,last_name,email
+1,John,Doe,john@example.com
+2,Jane,Smith,jane@example.com
 ```
 
 #### 2. Migrate Data from MSSQL to Cassandra
