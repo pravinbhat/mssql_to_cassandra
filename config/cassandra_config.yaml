@@ -1,0 +1,56 @@
+# Cassandra Configuration
+cassandra:
+  contact_points:
+    - "localhost"
+  port: 9042
+  keyspace: "migration_db"
+  username: "cassandra"  # Change if using authentication
+  password: "cassandra"  # Change if using authentication
+  
+  # Connection settings
+  connection:
+    local_dc: "datacenter1"
+    consistency_level: "LOCAL_QUORUM"
+    request_timeout: 30
+    
+  # Spark Cassandra Connector properties
+  spark_connector:
+    connection.host: "localhost"
+    connection.port: 9042
+    # Disable authentication for local Cassandra without auth
+    # Uncomment the lines below if your Cassandra requires authentication:
+    # auth.username: "cassandra"
+    # auth.password: "cassandra"
+    output.consistency.level: "LOCAL_QUORUM"
+    input.consistency.level: "LOCAL_ONE"
+
+# Keyspace creation settings
+keyspace:
+  replication_strategy: "SimpleStrategy"
+  replication_factor: 1
+  durable_writes: true
+
+# Table mappings from MSSQL to Cassandra
+table_mappings:
+  - source_table: "dbo.customers"
+    target_table: "customers"
+    partition_key: "customer_id"
+    clustering_keys: []
+    
+  - source_table: "dbo.orders"
+    target_table: "orders"
+    partition_key: "customer_id"
+    clustering_keys: 
+      - "order_date"
+      - "order_id"
+    
+  - source_table: "dbo.products"
+    target_table: "products"
+    partition_key: "product_id"
+    clustering_keys: []
+
+# Spark write options
+write_options:
+  mode: "append"  # append, overwrite, ignore, error
+  confirm.truncate: true
+  ttl: 0  # Time to live in seconds (0 = no TTL)

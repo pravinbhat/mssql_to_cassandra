@@ -30,7 +30,7 @@ spark:
   # JDBC driver paths - using local JARs instead of Maven packages
   jars:
     - "jars/mssql-jdbc-12.8.1.jre11.jar"
-    - "jars/spark-cassandra-connector-assembly_2.13-3.5.1.jar"
+    - "jars/spark-cassandra-connector-assembly_2.12-3.5.0.jar"
     
   # Packages to download automatically - DISABLED due to Maven resolution issues
   # Using local JARs instead (see jars section above)

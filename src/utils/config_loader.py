@@ -43,6 +43,10 @@ class ConfigLoader:
         """Load MSSQL configuration."""
         return self.load_config("mssql_config.yaml")
 
+    def load_cassandra_config(self) -> Dict[str, Any]:
+        """Load Cassandra configuration."""
+        return self.load_config("cassandra_config.yaml")
+
     def load_spark_config(self) -> Dict[str, Any]:
         """Load Spark configuration."""
         return self.load_config("spark_config.yaml")

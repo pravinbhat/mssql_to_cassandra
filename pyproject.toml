@@ -20,8 +20,8 @@ classifiers = [
 ]
 
 dependencies = [
-    # Spark and PySpark
-    "pyspark>=3.3.0",
+    # Spark and PySpark - pinned to 3.5.x for Cassandra connector compatibility
+    "pyspark>=3.5.0,<4.0.0",
     
     # Database Drivers
     "pymssql>=2.2.0",
