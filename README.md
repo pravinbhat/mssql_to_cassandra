@@ -1,6 +1,6 @@
 # MSSQL to Cassandra Migration Project
 
-This project provides Spark-based scripts to load test data into MSSQL Server and migrate that data to Apache Cassandra.
+This project provides Spark-based scripts migrate data from MSSQL Server DB to Apache Cassandra. It also includes scripts to load sample data into MSSQL Server
 
 ## Prerequisites
 
@@ -53,10 +53,10 @@ This project provides Spark-based scripts to load test data into MSSQL Server an
 ## Configuration
 
 Edit the YAML files in the `config/` directory to match your environment:
-- Database connection strings
+- Database connection details for Cassandra and MSSQL Server
 - Authentication credentials
 - Spark settings
-- Table mappings
+- Table mappings from MSSQL Server to Cassandra
 
 ## Development
 
