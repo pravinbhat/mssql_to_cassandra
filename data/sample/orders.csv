@@ -1,16 +1,16 @@
-order_id,customer_id,order_date,total_amount,status,payment_method,shipping_address,notes
-1001,1,2024-02-01,150.50,completed,credit_card,123 Main St New York NY 10001,Express delivery
-1002,2,2024-02-02,275.00,completed,paypal,456 Oak Ave Los Angeles CA 90001,
-1003,1,2024-02-03,89.99,shipped,credit_card,123 Main St New York NY 10001,Gift wrap requested
-1004,3,2024-02-04,450.75,processing,debit_card,789 Pine Rd Chicago IL 60601,
-1005,4,2024-02-05,125.00,completed,credit_card,321 Elm St Houston TX 77001,
-1006,2,2024-02-06,320.50,shipped,paypal,456 Oak Ave Los Angeles CA 90001,Fragile items
-1007,5,2024-02-07,199.99,completed,credit_card,654 Maple Dr Phoenix AZ 85001,
-1008,6,2024-02-08,550.00,processing,debit_card,987 Cedar Ln Philadelphia PA 19101,
-1009,3,2024-02-09,75.25,cancelled,credit_card,789 Pine Rd Chicago IL 60601,Customer requested cancellation
-1010,7,2024-02-10,299.99,completed,paypal,147 Birch Ct San Antonio TX 78201,
-1011,8,2024-02-11,425.00,shipped,credit_card,258 Spruce Way San Diego CA 92101,
-1012,1,2024-02-12,180.75,completed,credit_card,123 Main St New York NY 10001,
-1013,9,2024-02-13,95.50,processing,debit_card,369 Ash Blvd Dallas TX 75201,
-1014,10,2024-02-14,670.00,completed,paypal,741 Walnut Pl San Jose CA 95101,Valentine's Day order
-1015,4,2024-02-15,210.25,shipped,credit_card,321 Elm St Houston TX 77001,
+order_id,customer_id,order_date,status,payment_method,shipping_address,notes
+1001,1,2024-02-01,completed,credit_card,123 Main St New York NY 10001,Express delivery
+1002,2,2024-02-02,completed,paypal,456 Oak Ave Los Angeles CA 90001,
+1003,1,2024-02-03,shipped,credit_card,123 Main St New York NY 10001,Gift wrap requested
+1004,3,2024-02-04,processing,debit_card,789 Pine Rd Chicago IL 60601,
+1005,4,2024-02-05,completed,credit_card,321 Elm St Houston TX 77001,
+1006,2,2024-02-06,shipped,paypal,456 Oak Ave Los Angeles CA 90001,Fragile items
+1007,5,2024-02-07,completed,credit_card,654 Maple Dr Phoenix AZ 85001,
+1008,6,2024-02-08,processing,debit_card,987 Cedar Ln Philadelphia PA 19101,
+1009,3,2024-02-09,cancelled,credit_card,789 Pine Rd Chicago IL 60601,Customer requested cancellation
+1010,7,2024-02-10,completed,paypal,147 Birch Ct San Antonio TX 78201,
+1011,8,2024-02-11,shipped,credit_card,258 Spruce Way San Diego CA 92101,
+1012,1,2024-02-12,completed,credit_card,123 Main St New York NY 10001,
+1013,9,2024-02-13,processing,debit_card,369 Ash Blvd Dallas TX 75201,
+1014,10,2024-02-14,completed,paypal,741 Walnut Pl San Jose CA 95101,Valentine's Day order
+1015,4,2024-02-15,shipped,credit_card,321 Elm St Houston TX 77001,

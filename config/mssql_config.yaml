@@ -26,6 +26,10 @@ tables:
     schema: "dbo"
     primary_key: "order_id"
     
+  - name: "order_details"
+    schema: "dbo"
+    primary_key: ["order_id", "product_id"]
+    
   - name: "products"
     schema: "dbo"
     primary_key: "product_id"

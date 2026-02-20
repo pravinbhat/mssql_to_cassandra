@@ -40,28 +40,38 @@ def create_spark_session(config: dict) -> SparkSession:
 
 def load_sample_data(spark: SparkSession, data_dir: Path):
     """
-    Load sample data from CSV files.
+    Load sample data from CSV files dynamically.
+
+    Reads all CSV files in the data directory and uses the filename
+    (without extension) as the table name in MSSQL Server.
 
     Args:
         spark: SparkSession instance
         data_dir: Directory containing sample data files
+
+    Returns:
+        dict: Dictionary mapping table names to DataFrames
     """
     dataframes = {}
 
-    # Load customers
-    customers_path = data_dir / "customers.csv"
-    if customers_path.exists():
-        dataframes["customers"] = spark.read.csv(str(customers_path), header=True, inferSchema=True)
+    # Find all CSV files in the data directory
+    csv_files = list(data_dir.glob("*.csv"))
 
-    # Load orders
-    orders_path = data_dir / "orders.csv"
-    if orders_path.exists():
-        dataframes["orders"] = spark.read.csv(str(orders_path), header=True, inferSchema=True)
+    if not csv_files:
+        return dataframes
 
-    # Load products
-    products_path = data_dir / "products.csv"
-    if products_path.exists():
-        dataframes["products"] = spark.read.csv(str(products_path), header=True, inferSchema=True)
+    # Load each CSV file
+    for csv_file in csv_files:
+        # Use filename without extension as table name
+        table_name = csv_file.stem
+
+        try:
+            df = spark.read.csv(str(csv_file), header=True, inferSchema=True)
+            dataframes[table_name] = df
+        except Exception as e:
+            # Log error but continue with other files
+            print(f"Warning: Failed to load {csv_file.name}: {str(e)}")
+            continue
 
     return dataframes
 
