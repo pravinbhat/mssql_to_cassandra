@@ -1,6 +1,8 @@
 # MSSQL to Cassandra Migration Project
 
-This project provides Spark-based scripts migrate data from MSSQL Server DB to Apache Cassandra. It also includes scripts to load sample data into MSSQL Server
+This project provides Spark-based scripts to migrate data from MSSQL Server to Apache Cassandra. It includes:
+- **Migration script**: Automated data migration from MSSQL to Cassandra with schema mapping
+- **Data loader**: Scripts to load sample data into MSSQL Server for testing
 
 ## Prerequisites
 
@@ -42,12 +44,46 @@ This project provides Spark-based scripts migrate data from MSSQL Server DB to A
 
 **Important**: All commands must be run with Java 17+ for PySpark 4.x compatibility.
 
-### Option 1: Using the helper script (Recommended)
-```bash
-# Load data into MSSQL
-./run.sh uv run python scripts/load_mssql/load_data.py
+### Using the helper script (Recommended)
 
+#### 1. Load Sample Data into MSSQL
+Load test data from CSV files into MSSQL Server:
+```bash
+./run.sh uv run python scripts/load_mssql/load_data.py
 ```
+
+#### 2. Migrate Data from MSSQL to Cassandra
+Migrate data from MSSQL Server to Cassandra using the configured table mappings:
+
+```bash
+# Basic migration (assumes keyspace exists)
+./run.sh uv run python scripts/migrate_to_cassandra/migrate_data.py
+
+# Create keyspace if it doesn't exist
+./run.sh uv run python scripts/migrate_to_cassandra/migrate_data.py --create-keyspace
+
+# Use custom configuration files
+./run.sh uv run python scripts/migrate_to_cassandra/migrate_data.py \
+  --mssql-config config/mssql_config.yaml \
+  --cassandra-config config/cassandra_config.yaml
+
+# Enable debug logging
+./run.sh uv run python scripts/migrate_to_cassandra/migrate_data.py --log-level DEBUG
+```
+
+**Migration Features:**
+- Automatically creates Cassandra tables based on MSSQL schema
+- Maps MSSQL data types to appropriate Cassandra types
+- Supports custom partition and clustering keys per table
+- Handles multiple table migrations in a single run
+- Provides detailed logging of the migration process
+- Continues migration even if individual tables fail
+
+**Command-line Options:**
+- `--mssql-config`: Path to MSSQL configuration file (default: `config/mssql_config.yaml`)
+- `--cassandra-config`: Path to Cassandra configuration file (default: `config/cassandra_config.yaml`)
+- `--create-keyspace`: Create the Cassandra keyspace if it doesn't exist
+- `--log-level`: Set logging level (DEBUG, INFO, WARN, ERROR; default: INFO)
 
 
 ## Configuration
