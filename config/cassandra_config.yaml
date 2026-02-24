@@ -49,6 +49,12 @@ table_mappings:
     partition_key: "product_id"
     clustering_keys: []
 
+  - source_table: "dbo.order_details"
+    target_table: "order_details"
+    partition_key: "order_id"
+    clustering_keys: 
+      - "product_id"
+
 # Spark write options
 write_options:
   mode: "append"  # append, overwrite, ignore, error

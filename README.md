@@ -33,14 +33,25 @@ This project provides Spark-based scripts to migrate data from MSSQL Server to A
    curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
-3. **Install project dependencies**:
+3. **Download required JDBC drivers**:
+   ```bash
+   ./scripts/download_jars.sh
+   ```
+   
+   This script downloads:
+   - **MSSQL JDBC Driver** (v12.8.1.jre11) - Required for connecting Spark to MSSQL Server
+   - **Cassandra Spark Connector** (v3.5.0) - Required for writing data to Cassandra
+   
+   The JARs are downloaded to the `jars/` directory and are automatically used by Spark.
+
+4. **Install project dependencies**:
    ```bash
    uv sync
    ```
 
-4. **Configure database connections** in `config/` directory
+5. **Configure database connections** in `config/` directory
 
-5. **Place your test data** in `data/sample/`
+6. **Place your test data** in `data/sample/`
 
 ## Usage
 
@@ -48,7 +59,34 @@ This project provides Spark-based scripts to migrate data from MSSQL Server to A
 
 ### Using the helper script (Recommended)
 
-#### 1. Load Sample Data into MSSQL
+#### 1. Generate Sample Data (Optional)
+Generate sample CSV files for testing:
+```bash
+python scripts/generate_sample_data.py [customers] [products] [orders] [max_items_per_order]
+```
+
+**Arguments** (all optional, defaults to 10):
+- `customers`: Number of customers to generate
+- `products`: Number of products to generate
+- `orders`: Number of orders to generate
+- `max_items_per_order`: Maximum items per order
+
+**Example:**
+```bash
+# Generate default data (10 of each)
+python scripts/generate_sample_data.py
+
+# Generate custom amounts
+python scripts/generate_sample_data.py 100 50 200 5
+```
+
+Generates four CSV files in `data/sample/`:
+- `customers.csv` - Customer information
+- `products.csv` - Product catalog
+- `orders.csv` - Order records
+- `order_details.csv` - Order line items
+
+#### 2. Load Sample Data into MSSQL
 Load test data from CSV files into MSSQL Server:
 ```bash
 ./run.sh uv run python scripts/load_mssql/load_data.py
