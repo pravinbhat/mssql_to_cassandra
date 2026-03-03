@@ -4,7 +4,9 @@ This project provides Spark-based scripts to migrate data from MSSQL Server to A
 - **Migration script**: Automated data migration from MSSQL to Cassandra with schema mapping
 - **Data loader**: Scripts to load sample data into MSSQL Server for testing
 
-> 📖 **For detailed technical information**, see the [Architecture Documentation](docs/ARCHITECTURE.md)
+> 📖 **Documentation**:
+> - [Architecture Documentation](docs/ARCHITECTURE.md) - System design and components
+> - [Optimization Guide](docs/OPTIMIZATION_GUIDE.md) - Performance tuning for large datasets
 
 ## Prerequisites
 
@@ -130,6 +132,9 @@ Migrate data from MSSQL Server to Cassandra using the configured table mappings:
 - Handles multiple table migrations in a single run
 - Provides detailed logging of the migration process
 - Continues migration even if individual tables fail
+- **Performance optimizations** for large datasets (dynamic repartitioning, caching, batch writes)
+
+> 💡 **Performance Tip**: For large datasets, see the [Optimization Guide](docs/OPTIMIZATION_GUIDE.md) for tuning recommendations.
 
 **Command-line Options:**
 - `--mssql-config`: Path to MSSQL configuration file (default: `config/mssql_config.yaml`)

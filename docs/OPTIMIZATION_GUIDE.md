@@ -1,6 +1,10 @@
 # Spark Optimization Guide for Large Dataset Migration
 
-This guide explains the Spark optimizations implemented in the MSSQL to Cassandra migration tool to improve performance for large datasets (1M+ rows).
+This guide explains the Spark optimizations implemented in the MSSQL to Cassandra migration tool to improve performance for large datasets.
+
+> 📖 **Related Documentation**:
+> - [README](../README.md) - Setup and usage instructions
+> - [Architecture](ARCHITECTURE.md) - System design and component overview
 
 ## Overview
 

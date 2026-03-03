@@ -2,6 +2,10 @@
 
 This document describes the architecture and design decisions for the MSSQL to Cassandra migration project.
 
+> 📖 **Related Documentation**:
+> - [README](../README.md) - Setup and usage instructions
+> - [Optimization Guide](OPTIMIZATION_GUIDE.md) - Performance tuning for large datasets
+
 ## System Architecture
 
 ```
@@ -163,14 +167,18 @@ spark:
 ### Data Partitioning
 
 **Spark Partitioning**:
-- Managed via configuration
-- Future improvement: Implement repartition() or coalesce() to optimize data distribution for large datasets
+- Dynamic repartitioning based on dataset size
+- Automatic coalescing for small datasets
+- Partition-key-based distribution for optimal Cassandra writes
+- Configurable via `optimization` settings in cassandra_config.yaml
 
 **Cassandra Partitioning**:
 - Design partition keys for even distribution
 - Use clustering keys for time-series data
 
 ## Performance Optimization
+
+The migration tool includes comprehensive optimization features for large datasets. See the [Optimization Guide](OPTIMIZATION_GUIDE.md) for detailed information.
 
 ### 1. Batch Processing
 
@@ -183,7 +191,16 @@ spark:
 - Concurrent writes to Cassandra
 - Partitioned reads from MSSQL
 
-### Metrics
-- Spark UI (http://localhost:4040)
-- Row counts and processing times
-- Error rates and retry attempts
+### 3. Dynamic Optimization
+
+- Automatic repartitioning for large datasets (>100K rows)
+- DataFrame caching for improved performance
+- Adaptive coalescing for small datasets
+- Partition-key-based distribution
+
+### Performance Monitoring
+
+- Spark web UI for monitoring partition distribution and task execution
+- Detailed logging of row counts and processing times
+- Throughput metrics (rows/sec)
+- Read/write time breakdown
