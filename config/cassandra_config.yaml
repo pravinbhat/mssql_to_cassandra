@@ -24,6 +24,13 @@ cassandra:
     output.consistency.level: "LOCAL_QUORUM"
     input.consistency.level: "LOCAL_ONE"
 
+    # Write optimization settings for large datasets
+    output.batch.size.rows: 1000
+    output.batch.size.bytes: 1048576  # 1MB
+    output.concurrent.writes: 5
+    output.throughput_mb_per_sec: 512  # MB/sec (use high value for max speed)
+    output.batch.grouping.key: partition
+
 # Keyspace creation settings
 keyspace:
   replication_strategy: "SimpleStrategy"
@@ -60,3 +67,43 @@ write_options:
   mode: "append"  # append, overwrite, ignore, error
   confirm.truncate: true
   ttl: 0  # Time to live in seconds (0 = no TTL)
+
+# Optimization settings for large dataset migration
+optimization:
+  # Enable repartitioning for better parallelism
+  enable_repartition: true
+  
+  # Enable DataFrame caching for faster access
+  enable_cache: true
+  
+  # Minimum rows to trigger repartitioning (default: 100,000)
+  repartition_threshold: 100000
+  
+  # Target number of partitions (null = auto-calculate based on rows_per_partition)
+  target_partitions: null
+  
+  # Rows per partition for auto-calculation (default: 50,000)
+  # Optimal range: 10,000 - 100,000 depending on row size
+  rows_per_partition: 50000
+  
+  # Performance tuning guide for different dataset sizes:
+  #
+  # Small datasets (< 100K rows):
+  #   - Coalesce will automatically reduce partitions
+  #   - No repartitioning needed
+  #
+  # Medium datasets (100K - 1M rows):
+  #   - rows_per_partition: 50000 (results in 2-20 partitions)
+  #   - enable_cache: true
+  #
+  # Large datasets (1M+ rows):
+  #   - rows_per_partition: 50000 (results in 20+ partitions)
+  #   - target_partitions: 20-40 (for explicit control)
+  #   - Consider increasing Spark executor memory
+  #
+  # Benefits of optimization:
+  #   - Better parallelism across Spark executors
+  #   - Improved write throughput to Cassandra
+  #   - Reduced memory pressure per partition
+  #   - Better distribution across Cassandra nodes
+  #   - Repartitioning by partition keys ensures data locality

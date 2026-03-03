@@ -43,6 +43,71 @@ def create_spark_session(config: dict, cassandra_config: dict) -> SparkSession:
 
     return builder.getOrCreate()
 
+def optimize_dataframe(
+    df,
+    row_count: int,
+    partition_keys: list,
+    optimization_config: dict,
+    logger,
+):
+    """
+    Optimize DataFrame for large dataset processing.
+
+    Args:
+        df: Input DataFrame
+        row_count: Number of rows in DataFrame
+        partition_keys: Partition key columns for Cassandra
+        optimization_config: Optimization configuration
+        logger: Logger instance
+
+    Returns:
+        Optimized DataFrame
+    """
+    # Get optimization parameters
+    enable_repartition = optimization_config.get("enable_repartition", True)
+    enable_cache = optimization_config.get("enable_cache", True)
+    repartition_threshold = optimization_config.get("repartition_threshold", 100000)
+    target_partitions = optimization_config.get("target_partitions", None)
+    rows_per_partition = optimization_config.get("rows_per_partition", 50000)
+
+    logger.info(f"Optimizing DataFrame with {row_count} rows")
+
+    # Repartition for large datasets
+    if enable_repartition and row_count >= repartition_threshold:
+        if target_partitions:
+            num_partitions = target_partitions
+        else:
+            # Calculate optimal partitions based on rows per partition
+            num_partitions = max(1, row_count // rows_per_partition)
+
+        logger.info(f"Repartitioning to {num_partitions} partitions for better parallelism")
+
+        # Repartition by partition keys if available for better Cassandra write distribution
+        if partition_keys and len(partition_keys) > 0:
+            logger.info(f"Repartitioning by partition keys: {partition_keys}")
+            df = df.repartition(num_partitions, *partition_keys)
+        else:
+            df = df.repartition(num_partitions)
+
+        logger.info(f"Current partitions after repartition: {df.rdd.getNumPartitions()}")
+
+    # Coalesce for small datasets to reduce overhead
+    elif row_count < repartition_threshold:
+        current_partitions = df.rdd.getNumPartitions()
+        if current_partitions > 10:
+            # Reduce partitions for small datasets
+            optimal_partitions = max(1, min(10, row_count // 10000))
+            logger.info(
+                f"Coalescing from {current_partitions} to {optimal_partitions} partitions for small dataset"
+            )
+            df = df.coalesce(optimal_partitions)
+
+    # Cache DataFrame if enabled (useful for multiple operations)
+    if enable_cache:
+        logger.info("Caching DataFrame in memory for faster access")
+        df = df.cache()
+
+    return df
 
 def migrate_table(
     mssql: MSSQLConnector,
@@ -50,17 +115,18 @@ def migrate_table(
     source_table: str,
     target_table: str,
     table_mapping: dict,
+    optimization_config: dict,
     logger,
 ):
     """
-    Migrate a single table from MSSQL to Cassandra.
-
+    Migrate a single table from MSSQL to Cassandra with optimizations.
     Args:
         mssql: MSSQL connector instance
         cassandra: Cassandra connector instance
         source_table: Source table name (with schema)
         target_table: Target table name
         table_mapping: Table mapping configuration with partition/clustering keys
+        optimization_config: Optimization configuration
         logger: Logger instance
     """
     logger.info(f"Migrating {source_table} -> {target_table}")
@@ -73,10 +139,12 @@ def migrate_table(
 
     # Read from MSSQL
     logger.info(f"Reading data from MSSQL: {source_table}")
+    start_time = time.time()
     df = mssql.read_table(table, schema)
 
     row_count = df.count()
-    logger.info(f"Read {row_count} rows from {source_table}")
+    read_time = time.time() - start_time
+    logger.info(f"Read {row_count} rows from {source_table} in {read_time:.2f} seconds")
 
     if row_count == 0:
         logger.warning(f"No data found in {source_table}, skipping")
@@ -85,54 +153,39 @@ def migrate_table(
     # Show schema
     logger.info(f"Source schema: {df.schema}")
 
-    # Create table if it doesn't exist
-    if not cassandra.table_exists(target_table):
-        logger.info(f"Creating Cassandra table: {target_table}")
+    # Get partition keys for optimization
+    partition_key = table_mapping.get("partition_key", [])
+    if isinstance(partition_key, str):
+        partition_key = [partition_key]
 
-        # Build schema from DataFrame
-        schema_parts = []
-        for field in df.schema.fields:
-            # Map Spark types to Cassandra types
-            spark_type = str(field.dataType)
-            if "IntegerType" in spark_type:
-                cass_type = "int"
-            elif "LongType" in spark_type:
-                cass_type = "bigint"
-            elif "DoubleType" in spark_type or "FloatType" in spark_type:
-                cass_type = "double"
-            elif "StringType" in spark_type:
-                cass_type = "text"
-            elif "DateType" in spark_type:
-                cass_type = "date"
-            elif "TimestampType" in spark_type:
-                cass_type = "timestamp"
-            elif "BooleanType" in spark_type:
-                cass_type = "boolean"
-            else:
-                cass_type = "text"  # Default fallback
+    # Optimize DataFrame for large datasets
+    df = optimize_dataframe(df, row_count, partition_key, optimization_config, logger)
 
-            schema_parts.append(f"{field.name} {cass_type}")
+    # Get clustering keys from mapping
+    clustering_keys = table_mapping.get("clustering_keys", [])
 
-        schema_str = ",\n            ".join(schema_parts)
-
-        # Get partition and clustering keys from mapping
-        partition_key = table_mapping.get("partition_key", [])
-        if isinstance(partition_key, str):
-            partition_key = [partition_key]
-        clustering_keys = table_mapping.get("clustering_keys", [])
-
-        cassandra.create_table(target_table, schema_str, partition_key, clustering_keys)
-        logger.info(f"Table {target_table} created successfully")
-        # Wait a moment for table metadata to propagate
-        time.sleep(2)
-    else:
-        logger.info(f"Table {target_table} already exists")
+    # Create table if it doesn't exist (using CassandraConnector method)
+    cassandra.create_table_from_dataframe(df, target_table, partition_key, clustering_keys)
 
     # Write to Cassandra
     logger.info(f"Writing data to Cassandra: {target_table}")
+    write_start_time = time.time()
     cassandra.write_table(df, target_table)
+    write_time = time.time() - write_start_time
 
-    logger.info(f"Successfully migrated {row_count} rows from {source_table} to {target_table}")
+    # Unpersist cached DataFrame to free memory
+    if optimization_config.get("enable_cache", True):
+        df.unpersist()
+        logger.info("Unpersisted cached DataFrame")
+
+    total_time = time.time() - start_time
+    logger.info(
+        f"Successfully migrated {row_count} rows from {source_table} to {target_table}"
+    )
+    logger.info(
+        f"Performance: Read={read_time:.2f}s, Write={write_time:.2f}s, Total={total_time:.2f}s"
+    )
+    logger.info(f"Throughput: {row_count / total_time:.0f} rows/sec")
 
 
 def main():
@@ -200,6 +253,10 @@ def main():
             logger.error("No table mappings found in configuration")
             sys.exit(1)
 
+        # Get optimization configuration
+        optimization_config = cassandra_config.get("optimization", {})
+        logger.info(f"Optimization settings: {optimization_config}")
+
         # Migrate each table
         logger.info(f"Found {len(table_mappings)} tables to migrate")
 
@@ -208,7 +265,7 @@ def main():
             target_table = mapping["target_table"]
 
             try:
-                migrate_table(mssql, cassandra, source_table, target_table, mapping, logger)
+                migrate_table(mssql, cassandra, source_table, target_table, mapping, optimization_config, logger)
             except Exception as e:
                 logger.error(f"Error migrating {source_table}: {str(e)}", exc_info=True)
                 # Continue with next table

@@ -65,11 +65,55 @@ class CassandraConnector:
 
         write_options = self.config.get("write_options", {})
 
-        df.write.format("org.apache.spark.sql.cassandra").options(
-            table=table_name, keyspace=ks
-        ).option("confirm.truncate", str(write_options.get("confirm.truncate", True)).lower()).mode(
-            mode
-        ).save()
+        # Get Spark connector settings for optimized writes
+        spark_connector = self.cassandra_config.get("spark_connector", {})
+
+        # Build write operation with all optimization options
+        writer = df.write.format("org.apache.spark.sql.cassandra")
+        
+        # Basic options
+        writer = writer.options(table=table_name, keyspace=ks)
+        writer = writer.option(
+            "confirm.truncate", str(write_options.get("confirm.truncate", True)).lower()
+        )
+        
+        # Apply Spark connector optimization settings if available
+        if "output.batch.size.rows" in spark_connector:
+            writer = writer.option(
+                "spark.cassandra.output.batch.size.rows",
+                spark_connector["output.batch.size.rows"]
+            )
+        
+        if "output.batch.size.bytes" in spark_connector:
+            writer = writer.option(
+                "spark.cassandra.output.batch.size.bytes",
+                spark_connector["output.batch.size.bytes"]
+            )
+        
+        if "output.concurrent.writes" in spark_connector:
+            writer = writer.option(
+                "spark.cassandra.output.concurrent.writes",
+                spark_connector["output.concurrent.writes"]
+            )
+        
+        if "output.throughput_mb_per_sec" in spark_connector:
+            throughput = spark_connector["output.throughput_mb_per_sec"]
+            # Only set if it's a valid number
+            if isinstance(throughput, (int, float)) or (isinstance(throughput, str) and throughput.isdigit()):
+                writer = writer.option(
+                    "spark.cassandra.output.throughput_mb_per_sec",
+                    str(throughput)
+                )
+        
+        if "output.batch.grouping.key" in spark_connector:
+            writer = writer.option(
+                "spark.cassandra.output.batch.grouping.key",
+                spark_connector["output.batch.grouping.key"]
+            )
+        
+        # Execute write
+        writer.mode(mode).save()
+
 
         self.logger.info(f"Successfully wrote data to {ks}.{table_name}")
 
@@ -99,6 +143,67 @@ class CassandraConnector:
         self.logger.info(f"Creating keyspace: {ks}")
         self.execute_cql(cql)
         self.logger.info(f"Keyspace {ks} created successfully")
+
+    def create_table_from_dataframe(
+        self,
+        df: DataFrame,
+        table_name: str,
+        partition_key: List[str],
+        clustering_keys: List[str] = None,
+        keyspace: str = None,
+    ) -> None:
+        """
+        Create a Cassandra table from DataFrame schema if it doesn't exist.
+
+        Args:
+            df: Source DataFrame with schema
+            table_name: Name of the table
+            partition_key: List of partition key columns
+            clustering_keys: List of clustering key columns (optional)
+            keyspace: Keyspace name (uses default if not provided)
+        """
+        import time
+        
+        ks = keyspace or self.keyspace
+
+        # Check if table already exists
+        if self.table_exists(table_name, ks):
+            self.logger.info(f"Table {ks}.{table_name} already exists")
+            return
+
+        self.logger.info(f"Creating Cassandra table from DataFrame: {ks}.{table_name}")
+
+        # Build schema from DataFrame
+        schema_parts = []
+        for field in df.schema.fields:
+            # Map Spark types to Cassandra types
+            spark_type = str(field.dataType)
+            if "IntegerType" in spark_type:
+                cass_type = "int"
+            elif "LongType" in spark_type:
+                cass_type = "bigint"
+            elif "DoubleType" in spark_type or "FloatType" in spark_type:
+                cass_type = "double"
+            elif "StringType" in spark_type:
+                cass_type = "text"
+            elif "DateType" in spark_type:
+                cass_type = "date"
+            elif "TimestampType" in spark_type:
+                cass_type = "timestamp"
+            elif "BooleanType" in spark_type:
+                cass_type = "boolean"
+            else:
+                cass_type = "text"  # Default fallback
+
+            schema_parts.append(f"{field.name} {cass_type}")
+
+        schema_str = ",\n            ".join(schema_parts)
+
+        # Create table using the existing create_table method
+        self.create_table(table_name, schema_str, partition_key, clustering_keys, ks)
+        
+        # Wait a moment for table metadata to propagate
+        time.sleep(2)
 
     def create_table(
         self,
