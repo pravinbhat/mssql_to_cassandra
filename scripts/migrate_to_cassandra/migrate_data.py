@@ -18,8 +18,12 @@ from src.connectors import MSSQLConnector, CassandraConnector
 
 def create_spark_session(config: dict, cassandra_config: dict) -> SparkSession:
     """Create and configure Spark session with Cassandra connector."""
+    import os
+    
     spark_config = config["spark"]
     cassandra_conn = cassandra_config["cassandra"]["spark_connector"]
+    cassandra_main_config = cassandra_config["cassandra"]
+    connection_mode = cassandra_main_config.get("connection_mode", "standard")
 
     builder = SparkSession.builder.appName(spark_config["app_name"]).master(spark_config["master"])
 
@@ -27,9 +31,45 @@ def create_spark_session(config: dict, cassandra_config: dict) -> SparkSession:
     for key, value in spark_config["config"].items():
         builder = builder.config(key, value)
 
-    # Add Cassandra connector configuration
-    for key, value in cassandra_conn.items():
-        builder = builder.config(f"spark.cassandra.{key}", value)
+    # Configure based on connection mode
+    if connection_mode == "astra":
+        # AstraDB configuration using Secure Connect Bundle
+        astra_config = cassandra_main_config.get("astra", {})
+        scb_path = astra_config.get("secure_connect_bundle")
+        client_id = astra_config.get("client_id")
+        client_secret = astra_config.get("client_secret")
+
+        if not scb_path:
+            raise ValueError("secure_connect_bundle path is required for AstraDB connection")
+        
+        if not Path(scb_path).exists():
+            raise FileNotFoundError(f"Secure Connect Bundle not found at: {scb_path}")
+
+        if not client_id or not client_secret:
+            raise ValueError("client_id and client_secret are required for AstraDB connection")
+
+        # Distribute SCB file to all executors using spark.files
+        # This makes the file available on all worker nodes
+        scb_absolute_path = os.path.abspath(scb_path)
+        builder = builder.config("spark.files", scb_absolute_path)
+        
+        # Get just the filename for the distributed file
+        scb_filename = os.path.basename(scb_path)
+        
+        # Set AstraDB-specific Spark configurations
+        # Use the filename only since Spark will place it in the working directory of each executor
+        builder = builder.config("spark.cassandra.connection.config.cloud.path", scb_filename)
+        builder = builder.config("spark.cassandra.auth.username", client_id)
+        builder = builder.config("spark.cassandra.auth.password", client_secret)
+        
+        # Add other Cassandra connector configurations (excluding connection.host and connection.port)
+        for key, value in cassandra_conn.items():
+            if key not in ["connection.host", "connection.port"]:
+                builder = builder.config(f"spark.cassandra.{key}", value)
+    else:
+        # Standard Cassandra configuration
+        for key, value in cassandra_conn.items():
+            builder = builder.config(f"spark.cassandra.{key}", value)
 
     # Add JAR files
     if "jars" in spark_config:

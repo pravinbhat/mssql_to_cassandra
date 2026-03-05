@@ -5,6 +5,7 @@ Cassandra connector for Spark operations.
 from pyspark.sql import SparkSession, DataFrame
 from typing import Dict, Any, List
 import logging
+import os
 
 
 class CassandraConnector:
@@ -23,7 +24,15 @@ class CassandraConnector:
         self.logger = logging.getLogger(__name__)
 
         self.cassandra_config = config["cassandra"]
-        self.keyspace = self.cassandra_config["keyspace"]
+        self.connection_mode = self.cassandra_config.get("connection_mode", "standard")
+        
+        # Set keyspace based on connection mode
+        if self.connection_mode == "astra":
+            self.keyspace = self.cassandra_config.get("astra", {}).get("keyspace", "migration_db")
+        else:
+            self.keyspace = self.cassandra_config.get("keyspace", "migration_db")
+        
+        self.logger.info(f"Cassandra connector initialized in '{self.connection_mode}' mode")
 
     def read_table(self, table_name: str, keyspace: str = None) -> DataFrame:
         """
@@ -96,12 +105,12 @@ class CassandraConnector:
                 spark_connector["output.concurrent.writes"]
             )
         
-        if "output.throughput_mb_per_sec" in spark_connector:
-            throughput = spark_connector["output.throughput_mb_per_sec"]
+        if "output.throughputMBPerSec" in spark_connector:
+            throughput = spark_connector["output.throughputMBPerSec"]
             # Only set if it's a valid number
             if isinstance(throughput, (int, float)) or (isinstance(throughput, str) and throughput.isdigit()):
                 writer = writer.option(
-                    "spark.cassandra.output.throughput_mb_per_sec",
+                    "spark.cassandra.output.throughputMBPerSec",
                     str(throughput)
                 )
         
@@ -261,26 +270,63 @@ class CassandraConnector:
         from cassandra.cluster import Cluster
         from cassandra.auth import PlainTextAuthProvider
 
-        contact_points = self.cassandra_config["contact_points"]
-        port = self.cassandra_config["port"]
-
-        # Create connection with optional authentication
-        cluster_kwargs = {"contact_points": contact_points, "port": port}
-
-        # Only add auth if username and password are provided
-        username = self.cassandra_config.get("username")
-        password = self.cassandra_config.get("password")
-        if username and password:
-            auth_provider = PlainTextAuthProvider(username=username, password=password)
-            cluster_kwargs["auth_provider"] = auth_provider
-
-        cluster = Cluster(**cluster_kwargs)
+        cluster = self._create_connection()
         session = cluster.connect()
 
         try:
             session.execute(cql)
         finally:
             cluster.shutdown()
+
+    def _create_connection(self) -> "Cluster":
+        """
+        Create a Cassandra cluster connection based on connection mode.
+
+        Returns:
+            Cassandra Cluster instance
+        """
+        from cassandra.cluster import Cluster
+        from cassandra.auth import PlainTextAuthProvider
+
+        if self.connection_mode == "astra":
+            # AstraDB connection using Secure Connect Bundle
+            astra_config = self.cassandra_config.get("astra", {})
+            scb_path = astra_config.get("secure_connect_bundle")
+            client_id = astra_config.get("client_id")
+            client_secret = astra_config.get("client_secret")
+
+            if not scb_path:
+                raise ValueError("secure_connect_bundle path is required for AstraDB connection")
+            
+            if not os.path.exists(scb_path):
+                raise FileNotFoundError(f"Secure Connect Bundle not found at: {scb_path}")
+
+            if not client_id or not client_secret:
+                raise ValueError("client_id and client_secret are required for AstraDB connection")
+
+            self.logger.info(f"Connecting to AstraDB using SCB: {scb_path}")
+            
+            cloud_config = {
+                'secure_connect_bundle': scb_path
+            }
+            auth_provider = PlainTextAuthProvider(client_id, client_secret)
+            
+            return Cluster(cloud=cloud_config, auth_provider=auth_provider)
+        else:
+            # Standard Cassandra connection
+            contact_points = self.cassandra_config["contact_points"]
+            port = self.cassandra_config["port"]
+
+            cluster_kwargs = {"contact_points": contact_points, "port": port}
+
+            # Only add auth if username and password are provided
+            username = self.cassandra_config.get("username")
+            password = self.cassandra_config.get("password")
+            if username and password:
+                auth_provider = PlainTextAuthProvider(username=username, password=password)
+                cluster_kwargs["auth_provider"] = auth_provider
+
+            return Cluster(**cluster_kwargs)
 
     def table_exists(self, table_name: str, keyspace: str = None) -> bool:
         """
@@ -293,25 +339,9 @@ class CassandraConnector:
         Returns:
             True if table exists, False otherwise
         """
-        from cassandra.cluster import Cluster
-        from cassandra.auth import PlainTextAuthProvider
-
         ks = keyspace or self.keyspace
 
-        contact_points = self.cassandra_config["contact_points"]
-        port = self.cassandra_config["port"]
-
-        # Create connection with optional authentication
-        cluster_kwargs = {"contact_points": contact_points, "port": port}
-
-        # Only add auth if username and password are provided
-        username = self.cassandra_config.get("username")
-        password = self.cassandra_config.get("password")
-        if username and password:
-            auth_provider = PlainTextAuthProvider(username=username, password=password)
-            cluster_kwargs["auth_provider"] = auth_provider
-
-        cluster = Cluster(**cluster_kwargs)
+        cluster = self._create_connection()
         session = cluster.connect()
 
         try:

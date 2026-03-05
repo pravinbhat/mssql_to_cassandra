@@ -1,11 +1,25 @@
 # Cassandra Configuration
 cassandra:
+  # Connection mode: "standard" for regular Cassandra, "astra" for AstraDB
+  connection_mode: "standard"  # Options: "standard" or "astra"
+  
+  # Standard Cassandra connection settings (used when connection_mode = "standard")
   contact_points:
     - "localhost"
   port: 9042
   keyspace: "migration_db"
   username: "cassandra"  # Change if using authentication
   password: "cassandra"  # Change if using authentication
+  
+  # AstraDB connection settings (used when connection_mode = "astra")
+  astra:
+    # Path to the secure connect bundle (SCB) file
+    secure_connect_bundle: "/path/to/secure-connect-database.zip"
+    # AstraDB credentials
+    client_id: "your-client-id"
+    client_secret: "your-client-secret"
+    # Keyspace for AstraDB
+    keyspace: "migration_db"
   
   # Connection settings
   connection:

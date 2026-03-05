@@ -1,8 +1,11 @@
 # MSSQL to Cassandra Migration Project
 
-This project provides Spark-based scripts to migrate data from MSSQL Server to Apache Cassandra. It includes:
+This project provides Spark-based scripts to migrate data from MSSQL Server to Cassandra. It includes:
 - **Migration script**: Automated data migration from MSSQL to Cassandra with schema mapping
 - **Data loader**: Scripts to load sample data into MSSQL Server for testing
+- **Secure Connection Support**: Connect securely using environment variables
+
+> **Note**: This tool supports all Apache Cassandra-compatible (CQL based) databases, including Apache Cassandra, DataStax Enterprise (DSE), DataStax Hyper Converged Database (HCD), and DataStax Astra DB.
 
 > 📖 **Documentation**:
 > - [Architecture Documentation](docs/ARCHITECTURE.md) - System design and components
@@ -14,7 +17,7 @@ This project provides Spark-based scripts to migrate data from MSSQL Server to A
 - Apache Spark 3.x+
 - Python 3.12+
 - MSSQL Server
-- Apache Cassandra
+- **Target Database**: Cassandra or any CQL-compatible database
 - [UV](https://docs.astral.sh/uv/) - Fast Python package installer and resolver
 
 ## Setup
@@ -55,13 +58,11 @@ This project provides Spark-based scripts to migrate data from MSSQL Server to A
 
 6. **Place your test data** in `data/sample/`
 
-## Usage
+## Using the helper script
 
 **Important**: All commands must be run with Java 17+ for PySpark 4.x compatibility.
 
-### Using the helper script (Recommended)
-
-#### 1. Generate Sample Data (Optional)
+#### 1. Generate Sample Data (Optional, for testing only)
 Generate sample CSV files for testing:
 ```bash
 python scripts/generate_sample_data.py [customers] [products] [orders] [max_items_per_order]
@@ -88,7 +89,7 @@ Generates four CSV files in `data/sample/`:
 - `orders.csv` - Order records
 - `order_details.csv` - Order line items
 
-#### 2. Load Sample Data into MSSQL
+#### 2. Load Sample Data into MSSQL (Optional, for testing only)
 Load test data from CSV files into MSSQL Server:
 ```bash
 ./run.sh uv run python scripts/load_mssql/load_data.py
@@ -106,7 +107,9 @@ customer_id,first_name,last_name,email
 2,Jane,Smith,jane@example.com
 ```
 
-#### 2. Migrate Data from MSSQL to Cassandra
+
+## Migrate Data from MSSQL to Cassandra
+
 Migrate data from MSSQL Server to Cassandra using the configured table mappings:
 
 ```bash
@@ -146,10 +149,59 @@ Migrate data from MSSQL Server to Cassandra using the configured table mappings:
 ## Configuration
 
 Edit the YAML files in the `config/` directory to match your environment:
-- Database connection details for Cassandra and MSSQL Server
+- Database connection details for Cassandra/AstraDB and MSSQL Server
 - Authentication credentials
 - Spark settings
 - Table mappings from MSSQL Server to Cassandra
+
+### Cassandra Connection Modes
+
+The tool supports two connection modes:
+
+1. **Standard Mode** (default):
+   ```yaml
+   cassandra:
+     connection_mode: "standard"
+     contact_points: ["localhost"]
+     port: 9042
+     keyspace: "migration_db"
+   ```
+
+2. **Astra Mode** (for DataStax Astra DB):
+   ```yaml
+   cassandra:
+     connection_mode: "astra"
+     astra:
+       secure_connect_bundle: "/path/to/secure-connect-db.zip"
+       client_id: "your-client-id"
+       client_secret: "your-client-secret"
+       keyspace: "migration_db"
+   ```
+   
+   > **Note**: When using `connection_mode: "astra"`, the keyspace must be created beforehand using the Astra DB UI. The migration tool cannot create keyspaces programmatically in Astra mode.
+
+### Secure Connection with Environment Variables
+
+For better security, use environment variables instead of hardcoding credentials:
+
+```bash
+# Set environment variables
+export ASTRA_SCB_PATH="/path/to/secure-connect-db.zip"
+export ASTRA_CLIENT_ID="your-client-id"
+export ASTRA_CLIENT_SECRET="your-client-secret"
+```
+
+Then reference them in your configuration:
+
+```yaml
+cassandra:
+  connection_mode: "astra"
+  astra:
+    secure_connect_bundle: "${ASTRA_SCB_PATH}"
+    client_id: "${ASTRA_CLIENT_ID}"
+    client_secret: "${ASTRA_CLIENT_SECRET}"
+    keyspace: "migration_db"
+```
 
 ## Development
 
@@ -185,6 +237,14 @@ Run tests with:
 uv run pytest tests/
 ```
 
+
+## References
+
+- [Apache Cassandra Documentation](https://cassandra.apache.org/doc/latest/)
+- [DataStax Astra DB Documentation](https://docs.datastax.com/en/astra/docs/)
+- [Secure Connect Bundle Guide](https://docs.datastax.com/en/astra/docs/connecting-to-astra-databases.html)
+- [Spark Cassandra Connector](https://github.com/datastax/spark-cassandra-connector)
+- [DataStax Enterprise (DSE)](https://docs.datastax.com/en/dse/index.html)
 
 ## License
 
